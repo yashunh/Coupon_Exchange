@@ -1,0 +1,180 @@
+import express, { response } from "express"
+import { PrismaClient } from "@prisma/client"
+import { authMiddleware } from "../middleware/authMiddleware"
+import { addToCartBody, buyCouponBody, createCouponBody, filterCouponBody, userIdSchema } from "../zod/zod"
+import { userMiddleware } from "../middleware/userMiddleware"
+import { bodyMiddleware } from "../middleware/bodyMiddleware"
+
+const router = express.Router()
+const prisma = new PrismaClient()
+
+router.post("/create", authMiddleware, bodyMiddleware(createCouponBody), userMiddleware, async (req, res)=>{
+    const { id, sellerPrice, description, platform, validityTime, validityDate, code} = req.body
+    const today = new Date()
+    today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
+    const [hours, minutes] = validityTime.split(':')
+    const [year, month, day] = validityDate.split('-')
+    let dateTime = new Date(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hours, 10),
+        parseInt(minutes, 10)
+      );
+    dateTime.setUTCHours(dateTime.getUTCHours() - 5, dateTime.getUTCMinutes() - 30);
+    const result = await prisma.coupon.create({
+        data: {
+            ownerId: id,
+            listingTime: today,
+            listingPrice: sellerPrice*1.01,
+            sellerPrice: sellerPrice,
+            validity: dateTime,
+            platform: platform,
+            description: description,
+            code: code
+        }
+    })
+    res.send(result)
+})
+
+router.get("/latest", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware, async (req, res)=>{
+    const result = await prisma.coupon.findMany({
+        orderBy: {
+            listingTime: "desc"
+        },
+        take: 30,
+        where: {
+            sold: false,
+            verified: true
+        }
+    })
+    res.send(result)
+})
+
+router.get("/myListing", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware, async (req, res)=>{
+    const result = await prisma.coupon.findMany({
+        where: {
+            ownerId: req.body.id
+        }
+    })
+    res.send(result)
+})
+
+router.post("/addToCart",  authMiddleware, bodyMiddleware(addToCartBody), userMiddleware, async (req, res)=>{
+    const today = new Date()
+    today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
+    const result = await prisma.cart.create({
+        data: {
+            userId: req.body.id,
+            couponId: req.body.couponId,
+            dateTime: today
+        }
+    })
+    res.send(result)
+})
+
+router.get("/:id", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware, async (req, res)=>{
+    const result = await prisma.coupon.findUnique({
+        where:{
+            id: req.params.id
+        }
+    })
+    res.send(result)
+})
+
+router.get("/filter", authMiddleware, bodyMiddleware(filterCouponBody), userMiddleware, async (req, res)=>{
+    const result = await prisma.coupon.findMany({
+        take: 50,
+        where:{
+            sold: false,
+            verified: true,
+            platform: req.body.platform || "",
+            description: {
+                contains: req.body.filter
+            },
+            sellerPrice :{
+                lessThanOrEqualTo: req.body.priceRange
+            }
+        },
+        orderBy: {
+            listingTime: 'desc'
+        }
+    })
+    res.send(result)
+})
+
+router.post("/buy", authMiddleware, bodyMiddleware(buyCouponBody), async (req, res)=>{
+    const today = new Date()
+    today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
+    const coupon = await prisma.coupon.findFirst({
+        where: {
+            id: req.body.couponId
+        }
+    })
+    if(!coupon){
+        return res.status(404).json({
+            msg: "invalid coupon id"
+        })
+    }
+    if(coupon.sold){
+        return res.status(404).json({
+            msg: "coupon is already sold"
+        })
+    }
+    if(!coupon.verified){
+        return res.status(404).json({
+            msg: "coupon not verified"
+        })
+    }
+    const userWallet = await prisma.wallet.findFirst({
+        where: {
+            userId: req.body.id
+        }
+    })
+    if(!userWallet){
+        return res.status(404).json({
+            msg: "invalid user id"
+        })
+    }
+    if(userWallet.balance <= coupon.sellerPrice){
+        return res.status(404).json({
+            msg: "insufficient balance"
+        })
+    }
+    await prisma.coupon.update({
+        here: {
+            id: req.body.couponId
+        },
+        data: {
+            buyerId: req.body.id,
+            sellingTime: today,
+            sold: true
+        }
+    })
+    await prisma.wallet.update({
+        where: {
+            id: userWallet.id
+        },
+        data: {
+            balance: {
+                decrement: coupon.sellerPrice
+            }
+        }
+    })
+    await prisma.wallet.updateMany({
+        where: {
+            userId: coupon.ownerId
+        },
+        data: {
+            balance: {
+                increment: coupon.listingPrice
+            }
+        }
+    })
+    return res.json({
+        msg: "coupon bought successfully",
+        couponId: coupon.id
+    })
+})
+
+export default couponRouter = router
