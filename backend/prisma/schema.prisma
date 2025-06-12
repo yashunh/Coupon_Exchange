@@ -19,8 +19,8 @@ model User{
   password String
   email String @unique
   authenticated Boolean @default(false)
-  avatarId Int
-  avatar Avatar @relation(fields: [avatarId],references: [id])
+  avatarId Int?
+  avatar Avatar? @relation(fields: [avatarId],references: [id])
   seller Coupon[] @relation("sellerToCoupon")
   buyer Coupon[] @relation("buyerToCoupon")
   wallet Wallet? @relation("userToWallet")
@@ -65,6 +65,8 @@ model Transaction {
   recieverId Int
   amount Decimal
   dateTime DateTime
+  senderPublicKey String
+  transactionSig String @unique
   sender User @relation(fields: [senderId],references: [id],name: "senderToTransaction")
   reciever User @relation(fields: [recieverId],references: [id],name: "recieverToTransaction")
 }
@@ -90,10 +92,9 @@ model Notification {
 
 model Cart {
   id Int @id @default(autoincrement())
-  dateTime DateTime
   userId Int
   user User @relation(fields: [userId], references: [id],name: "userToCart")
-  couponId Int
+  couponId Int[]
   coupon Coupon @relation(fields: [couponId], references: [id],name: "couponToCart")
 }
 

@@ -1,28 +1,28 @@
-import express from "express"
-import jwt from "jsonwebtoken"
-import { transporter } from "../transporter.js"
-import { signinBody, otpBody, signupBody} from "../zod/zod.js"
-import { PrismaClient } from "@prisma/client"
-import { authMiddleware } from "../middleware/authMiddleware"
+const express = require("express")
+const jwt = require("jsonwebtoken")
+const { transporter } = require("../transporter.js")
+const { signinBody, otpBody, signupBody } = require("../zod/zod.js")
+const { PrismaClient } = require("@prisma/client")
+const { authMiddleware } = require("../middleware/authMiddleware")
 
 const router = express.Router()
 const prisma = new PrismaClient()
 
-router.post("/signup", async (req, res)=>{
+router.post("/signup", async (req, res) => {
     const { success } = signupBody.safeParse(req.body)
-    if(!success){
+    if(!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
 
     const existingUser = await prisma.user.findFirst({
-        where:{
+        where: {
             email: req.body.email
         }
     })
-    if(existingUser){
-        return res.status(411).json({
+    if(existingUser) {
+        return res.status(400).json({
             msg: "User already exsit"
         })
     }
@@ -38,7 +38,7 @@ router.post("/signup", async (req, res)=>{
     const generateOtp = await prisma.otp.create({
         data: {
             userId: user.id,
-            otp: Math.floor(100000 + Math.random()*900000)
+            otp: Math.floor(100000 + Math.random() * 900000)
         }
     })
     await transporter.sendMail({
@@ -50,72 +50,77 @@ router.post("/signup", async (req, res)=>{
     })
     return res.send({
         msg: "user created",
-        user
+        userId: user.id
     })
 })
 
-router.get("/signin", async (req, res)=>{
+router.get("/signin", async (req, res) => {
     const { success } = signinBody.safeParse(req.body)
-    if(!success){
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     const existingUser = await prisma.user.findFirst({
-        where:{
+        where: {
             email: req.body.email
         }
     })
-    if(!existingUser){
+    if (!existingUser) {
         return res.status(411).json({
             msg: "User does not exsit"
         })
     }
-    if(!existingUser.authenticated){
+    if (!existingUser.authenticated) {
         return res.status(411).json({
             msg: "User not verified"
         })
     }
-    if(existingUser.password !== req.body.password){
+    if (existingUser.password !== req.body.password) {
         return res.status(411).json({
             message: "Incorrect Password"
         })
     }
-    const token = jwt.sign({id: existingUser.id},process.env.JWT_SECRET)
+    const token = jwt.sign({ id: existingUser.id }, process.env.JWT_SECRET)
     return res.send({
+        msg: "user created",
         token
     })
 })
 
-router.put("/otp", async (req, res)=>{
+router.put("/otp", async (req, res) => {
     const { success } = otpBody.safeParse(req.body)
-    if(!success){
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
 
     const existingUser = await prisma.user.findFirst({
-        where:{
+        where: {
             number: req.body.number
+        },
+        include: {
+            otp: true
         }
     })
-    if(!existingUser){
-        return res.status(411).json({
+    console.log(existingUser)
+    if (!existingUser) {
+        return res.status(404).json({
             msg: "User does not exsit"
         })
-    } 
-    if(existingUser.authenticated){
-        return res.status(411).json({
+    }
+    if (existingUser.authenticated) {
+        return res.status(400).json({
             msg: "User already verified"
         })
-    } 
+    }
     const getOtp = await prisma.otp.findFirst({
         where: {
             userId: existingUser.id
         }
     })
-    if(getOtp.otp !== req.body.otp){
+    if (getOtp.otp !== req.body.otp) {
         return res.status(411).json({
             msg: "Incorrect otp"
         })
@@ -128,36 +133,36 @@ router.put("/otp", async (req, res)=>{
             authenticated: true
         }
     })
-    const token = jwt.sign({id: existingUser.id},process.env.JWT_SECRET)
+    const token = jwt.sign({ id: existingUser.id }, process.env.JWT_SECRET)
     return res.send({
         token
     })
 })
 
 // not done
-router.get("/forgotPassword", authMiddleware, async(req, res)=>{
+router.get("/forgotPassword", authMiddleware, async (req, res) => {
     const { success } = signinBody.safeParse(req.body)
-    if(!success){
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     const existingUser = await prisma.user.findFirst({
-        where:{
+        where: {
             email: req.body.email
         }
     })
-    if(!existingUser){
+    if (!existingUser) {
         return res.status(411).json({
             msg: "User does not exsit"
         })
     }
-    if(!existingUser.authenticated){
+    if (!existingUser.authenticated) {
         return res.status(411).json({
             msg: "User not verified"
         })
     }
-    if(existingUser.email){
+    if (existingUser.email) {
         await transporter.sendMail({
             from: 'secratary.scifiinnovationclub@gmail.com',
             to: email,
@@ -171,4 +176,6 @@ router.get("/forgotPassword", authMiddleware, async(req, res)=>{
     }
 })
 
-export default authRouter = router
+module.exports = {
+    authRouter: router
+} 

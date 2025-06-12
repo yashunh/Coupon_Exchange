@@ -1,15 +1,21 @@
-import express from "express"
-import { PrismaClient } from "@prisma/client"
-import { authMiddleware } from "../middleware/authMiddleware"
-import { changeAvatarBody, userIdSchema } from "../zod/zod"
-import { userMiddleware } from "../middleware/userMiddleware"
-import { bodyMiddleware } from "../middleware/bodyMiddleware"
+const express = require("express")
+const { PrismaClient } = require("@prisma/client")
+const { authMiddleware } = require("../middleware/authMiddleware")
+const { changeAvatarBody, userIdSchema } = require("../zod/zod")
+const { userMiddleware } = require("../middleware/userMiddleware")
 
 const router = express.Router()
 const prisma = new PrismaClient()
 
-
-router.put("/changeAvatar", authMiddleware, bodyMiddleware(changeAvatarBody), userMiddleware , async(req, res)=>{
+router.put("/changeAvatar", authMiddleware,  (req,res,next)=>{
+     const { success } = changeAvatarBody.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req, res)=>{
     const result = await prisma.user.update({
         where: {
             id: existingUser.id
@@ -29,12 +35,28 @@ router.put("/changeAvatar", authMiddleware, bodyMiddleware(changeAvatarBody), us
 })
 
 // need change
-router.get("/getProfile", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getProfile", authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     res.send({existingUser})
 })
 
 // can add iterator
-router.get("/getNotification", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getNotification", authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.notification.findMany({
         orderBy: {
             dateTime: "desc"
@@ -46,7 +68,15 @@ router.get("/getNotification", authMiddleware, bodyMiddleware(userIdSchema), use
     res.send({result})
 })
 
-router.get("/getCart",authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getCart",authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.cart.findMany({
         orderBy: {
             dateTime: "desc"
@@ -58,7 +88,15 @@ router.get("/getCart",authMiddleware, bodyMiddleware(userIdSchema), userMiddlewa
     res.send({result})
 })
 
-router.get("/getBalance",authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getBalance",authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.wallet.findMany({
         where: {
             userId: existingUser.id
@@ -70,7 +108,15 @@ router.get("/getBalance",authMiddleware, bodyMiddleware(userIdSchema), userMiddl
     res.send({result})
 })
 
-router.get("/getCredit",authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getCredit",authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.wallet.findMany({
         where: {
             userId: existingUser.id
@@ -82,7 +128,15 @@ router.get("/getCredit",authMiddleware, bodyMiddleware(userIdSchema), userMiddle
     res.send({result})
 })
 
-router.get("/getTransactionHistory", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getTransactionHistory", authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.transaction.findMany({
         orderBy:{
             dateTime: 'desc'
@@ -101,7 +155,15 @@ router.get("/getTransactionHistory", authMiddleware, bodyMiddleware(userIdSchema
     res.send(result)
 })
 
-router.get("/getCreditsHistory", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getCreditsHistory", authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.creditLogs.findMany({
         orderBy:{
             dateTime: 'desc'
@@ -113,7 +175,15 @@ router.get("/getCreditsHistory", authMiddleware, bodyMiddleware(userIdSchema), u
     res.send(result)
 })
 
-router.get("/getBoughtCouponsHistory", authMiddleware, bodyMiddleware(userIdSchema), userMiddleware , async(req,res)=>{
+router.get("/getBoughtCouponsHistory", authMiddleware,  (req,res,next)=>{
+     const { success } = userIdSchema.safeParse(req.body)
+    if(!success){
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware , async(req,res)=>{
     const result = await prisma.coupon.findMany({
         orderBy:{
             sellingTime: 'desc'
@@ -125,4 +195,6 @@ router.get("/getBoughtCouponsHistory", authMiddleware, bodyMiddleware(userIdSche
     res.send(result)
 })
 
-export default userRouter = router
+module.exports = {
+    userRouter: router
+}

@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
-export const userMiddleware = async(req, res, next)=>{
+const userMiddleware = async(req, res, next)=>{
     const existingUser = await prisma.user.findUnique({
         where:{
             id: req.body.id
@@ -18,4 +18,8 @@ export const userMiddleware = async(req, res, next)=>{
         })
     }
     next()
+}
+
+module.exports = {
+    userMiddleware
 }
