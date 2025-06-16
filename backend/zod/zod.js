@@ -8,7 +8,7 @@ const couponIdSchmema = zod.number()
 
 const usernameSchema = zod.string()
 
-const passwordSchema = zod.string().min(8).max(20).regex(/[A-Z]/).regex(/[a-z]/).regex(/[0-9]/).regex(/[!@#$%^&*]/)
+const passwordSchema = zod.string()//.min(8).max(20).regex(/[A-Z]/).regex(/[a-z]/).regex(/[0-9]/).regex(/[!@#$%^&*]/)
 
 const timeSchema = zod.string().regex(/^(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/)
 
@@ -23,17 +23,11 @@ const signupBody = zod.object({
     email: emailSchema,
     username: usernameSchema,
     password: passwordSchema,
-    avatarId: zod.number()
 })
 
 const otpBody = zod.object({
     id: userIdSchema,
     otp: zod.string().min(6).max(6).regex(/[0-9]/)
-})
-
-const changeAvatarBody = zod.object({
-    id: userIdSchema,
-    avatarId: zod.number()
 })
 
 const createCouponBody = zod.object({
@@ -71,6 +65,5 @@ module.exports = {
     buyCouponBody,
     createCouponBody,
     filterCouponBody,
-    userIdSchema,
-    changeAvatarBody
+    userIdSchema
 }

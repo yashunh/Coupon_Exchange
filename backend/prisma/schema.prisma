@@ -7,20 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Avatar{
-  id Int @id @default(autoincrement())
-  url String
-  user User[]
-}
-
 model User{
   id Int @id @default(autoincrement())
   username String @unique
   password String
   email String @unique
   authenticated Boolean @default(false)
-  avatarId Int?
-  avatar Avatar? @relation(fields: [avatarId],references: [id])
   seller Coupon[] @relation("sellerToCoupon")
   buyer Coupon[] @relation("buyerToCoupon")
   wallet Wallet? @relation("userToWallet")
@@ -48,7 +40,7 @@ model Coupon{
   sold Boolean @default(false)
   seller User @relation(fields: [ownerId], references: [id],name: "sellerToCoupon")
   buyer User? @relation(fields: [buyerId], references: [id],name: "buyerToCoupon")
-  cart Cart[] @relation("couponToCart")
+  cartItems CartItem[]
 }
 
 model Wallet {
@@ -93,14 +85,22 @@ model Notification {
 model Cart {
   id Int @id @default(autoincrement())
   userId Int
-  user User @relation(fields: [userId], references: [id],name: "userToCart")
-  couponId Int[]
-  coupon Coupon @relation(fields: [couponId], references: [id],name: "couponToCart")
+  user User @relation(fields: [userId], references: [id], name: "userToCart")
+  items CartItem[] 
 }
+
+model CartItem {
+  id Int @id @default(autoincrement())
+  cartId Int
+  couponId Int
+  cart Cart @relation(fields: [cartId], references: [id])
+  coupon Coupon @relation(fields: [couponId], references: [id])
+}
+
 
 model Otp {
   id Int @id @default(autoincrement())
-  otp  String
+  otp  Int
   userId Int @unique
   user User @relation(fields: [userId],references: [id], name: "userToOtp")
 }

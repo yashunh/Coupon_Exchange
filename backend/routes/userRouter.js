@@ -1,38 +1,11 @@
 const express = require("express")
 const { PrismaClient } = require("@prisma/client")
 const { authMiddleware } = require("../middleware/authMiddleware")
-const { changeAvatarBody, userIdSchema } = require("../zod/zod")
+const { userIdSchema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
 
 const router = express.Router()
 const prisma = new PrismaClient()
-
-router.put("/changeAvatar", authMiddleware,  (req,res,next)=>{
-     const { success } = changeAvatarBody.safeParse(req.body)
-    if(!success){
-        return res.status(411).json({
-            msg: "Incorrect input"
-        })
-    }
-    next()
-}, userMiddleware , async(req, res)=>{
-    const result = await prisma.user.update({
-        where: {
-            id: existingUser.id
-        },
-        data: {
-            avatarId: req.body.avatarId
-        }
-    })
-    if(!result){
-        return res.status(404).json({
-            msg: "error"
-        })
-    }
-    res.send({
-        msg: "avatar updated"
-    })
-})
 
 // need change
 router.get("/getProfile", authMiddleware,  (req,res,next)=>{

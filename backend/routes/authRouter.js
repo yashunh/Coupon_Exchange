@@ -9,10 +9,11 @@ const router = express.Router()
 const prisma = new PrismaClient()
 
 router.post("/signup", async (req, res) => {
-    const { success } = signupBody.safeParse(req.body)
-    if(!success) {
+    const result = signupBody.safeParse(req.body)
+    if(!result.success) {
         return res.status(411).json({
-            msg: "Incorrect input"
+            msg: "Incorrect input",
+            result
         })
     }
 
@@ -31,8 +32,7 @@ router.post("/signup", async (req, res) => {
         data: {
             username: username,
             password: password,
-            email: email,
-            avatarId: avatarId
+            email: email
         }
     })
     const generateOtp = await prisma.otp.create({
@@ -42,10 +42,10 @@ router.post("/signup", async (req, res) => {
         }
     })
     await transporter.sendMail({
-        from: 'secratary.scifiinnovationclub@gmail.com',
+        from: 'yash.onlywork@gmail.com',
         to: email,
-        replyTo: 'no-reply@scifiinnovationclub.com',
-        subject: `OTP from CoupMart`,
+        replyTo: 'no-reply@yash.onlywork@gmail.com',
+        subject: `OTP from Coupon Exchange`,
         html: `<b>OTP for verification is ${generateOtp.otp}</b>`
     })
     return res.send({
