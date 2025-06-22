@@ -2,7 +2,8 @@ const express = require("express")
 const { couponRouter } = require("./routes/couponRouter")
 const { userRouter } = require("./routes/userRouter")
 const { authRouter } = require("./routes/authRouter.js")
-
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
 const app = express()
 app.use(express.json())
 
@@ -19,3 +20,8 @@ app.use((err, req, res, next) => {
 app.listen(3000, ()=>{
     console.log("server at 3000")
 })
+
+module.exports = {
+    app,
+    prisma
+}

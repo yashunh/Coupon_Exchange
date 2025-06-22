@@ -13,8 +13,7 @@ model User{
   password String
   email String @unique
   authenticated Boolean @default(false)
-  seller Coupon[] @relation("sellerToCoupon")
-  buyer Coupon[] @relation("buyerToCoupon")
+  owner Coupon[] @relation("sellerToCoupon")
   wallet Wallet? @relation("userToWallet")
   sender Transaction[] @relation("senderToTransaction")
   reciever Transaction[] @relation("recieverToTransaction")
@@ -27,20 +26,18 @@ model User{
 model Coupon{
   id Int @id @default(autoincrement())
   ownerId Int
-  buyerId Int?
-  listingTime DateTime
+  listingTime DateTime @default(now())
   sellingTime DateTime?
-  sellerPrice Decimal
+  sellingPrice Decimal
   listingPrice Decimal
   description String
   platform String
   validity DateTime
   code String
-  verified Boolean @default(false)
-  sold Boolean @default(false)
-  seller User @relation(fields: [ownerId], references: [id],name: "sellerToCoupon")
-  buyer User? @relation(fields: [buyerId], references: [id],name: "buyerToCoupon")
+  verified Boolean @default(true)
+  owner User @relation(fields: [ownerId], references: [id],name: "sellerToCoupon")
   cartItems CartItem[]
+  transaction Transaction[]
 }
 
 model Wallet {
@@ -55,12 +52,15 @@ model Transaction {
   id Int @id @default(autoincrement())
   senderId Int
   recieverId Int
+  couponId Int
   amount Decimal
   dateTime DateTime
   senderPublicKey String
+  recieverPublicKey String
   transactionSig String @unique
   sender User @relation(fields: [senderId],references: [id],name: "senderToTransaction")
   reciever User @relation(fields: [recieverId],references: [id],name: "recieverToTransaction")
+  coupon Coupon @relation(fields: [couponId], references: [id])
 }
 
 model CreditLogs{
@@ -96,7 +96,6 @@ model CartItem {
   cart Cart @relation(fields: [cartId], references: [id])
   coupon Coupon @relation(fields: [couponId], references: [id])
 }
-
 
 model Otp {
   id Int @id @default(autoincrement())

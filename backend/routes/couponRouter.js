@@ -1,11 +1,10 @@
 const express = require("express")
-const { PrismaClient } = require("@prisma/client")
 const { authMiddleware } = require("../middleware/authMiddleware")
 const { addToCartBody, buyCouponBody, createCouponBody, filterCouponBody, userIdSchema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
+const prisma = require("../index.js")
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 router.post("/create", authMiddleware, (req,res,next)=>{
      const { success } = createCouponBody.safeParse(req.body)
@@ -28,13 +27,11 @@ router.post("/create", authMiddleware, (req,res,next)=>{
         parseInt(hours, 10),
         parseInt(minutes, 10)
       );
-    dateTime.setUTCHours(dateTime.getUTCHours() - 5, dateTime.getUTCMinutes() - 30);
     const result = await prisma.coupon.create({
         data: {
             ownerId: id,
-            listingTime: today,
             listingPrice: sellerPrice*1.01,
-            sellerPrice: sellerPrice,
+            sellingPrice: sellerPrice,
             validity: dateTime,
             platform: platform,
             description: description,
@@ -45,7 +42,7 @@ router.post("/create", authMiddleware, (req,res,next)=>{
 })
 
 router.get("/latest", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
+    const { success } = userIdSchema.safeParse(req.body)
     if(!success){
         return res.status(411).json({
             msg: "Incorrect input"
@@ -92,15 +89,32 @@ router.post("/addToCart",  authMiddleware,  (req,res,next)=>{
     }
     next()
 }, userMiddleware, async (req, res)=>{
-    const today = new Date()
-    today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
-    const result = await prisma.cart.create({
-        data: {
-            userId: req.body.id,
-            couponId: req.body.couponId,
-            dateTime: today
+    const cart = await prisma.cart.findFirst({
+        where: {
+            userId: req.body.id
+       
         }
     })
+    let result;
+    if(!cart){
+        result = await prisma.cart.create({
+            data: {
+                userId: req.body.id,
+                items: [couponId]
+            }
+        })
+    }
+    else{
+       result = await prisma.cart.update({
+            where: {
+                id: cart.id
+            },
+            data:{
+                ...cart,
+                items: [...cart.items, couponId]
+            }
+       })
+    }
     res.send(result)
 })
 
@@ -121,6 +135,7 @@ router.get("/:id", authMiddleware,  (req,res,next)=>{
     res.send(result)
 })
 
+//verify
 router.get("/filter", authMiddleware,  (req,res,next)=>{
      const { success } = userIdSchema.safeParse(req.body)
     if(!success){
@@ -150,6 +165,7 @@ router.get("/filter", authMiddleware,  (req,res,next)=>{
     res.send(result)
 })
 
+//need change
 router.post("/buy", authMiddleware, (req,res,next)=>{
      const { success } = buyCouponBody.safeParse(req.body)
     if(!success){

@@ -1,5 +1,4 @@
-const { PrismaClient } = require("@prisma/client")
-const prisma = new PrismaClient()
+const prisma = require("../index.js")
 
 const userMiddleware = async(req, res, next)=>{
     const existingUser = await prisma.user.findUnique({

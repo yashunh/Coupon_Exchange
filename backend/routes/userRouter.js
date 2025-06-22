@@ -1,35 +1,51 @@
 const express = require("express")
-const { PrismaClient } = require("@prisma/client")
 const { authMiddleware } = require("../middleware/authMiddleware")
 const { userIdSchema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
+const prisma = require("../index.js")
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
-// need change
-router.get("/getProfile", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getProfile", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
-    res.send({existingUser})
+}, async (req, res) => {
+    const existingUser = await prisma.user.findUnique({
+        where: {
+            id: req.body.id
+        },
+        omit: {
+            password: true
+        }
+    })
+    if (!existingUser) {
+        return res.status(411).json({
+            msg: "User does not exsit"
+        })
+    }
+    if (!existingUser.authenticated) {
+        return res.status(411).json({
+            msg: "User not verified"
+        })
+    }
+    res.send({ existingUser })
 })
 
 // can add iterator
-router.get("/getNotification", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getNotification", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.notification.findMany({
         orderBy: {
             dateTime: "desc"
@@ -38,83 +54,60 @@ router.get("/getNotification", authMiddleware,  (req,res,next)=>{
             userId: existingUser.id
         }
     })
-    res.send({result})
+    res.send({ result })
 })
 
-router.get("/getCart",authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getCart", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.cart.findMany({
         orderBy: {
             dateTime: "desc"
         },
         where: {
-            userId: existingUser.id
+            userId: req.body.id
         }
     })
-    res.send({result})
+    res.send({ result })
 })
 
-router.get("/getBalance",authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getBalance", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.wallet.findMany({
         where: {
-            userId: existingUser.id
-        },
-        select: {
-            balance: true
+            userId: req.body.id
         }
     })
-    res.send({result})
+    res.send({ result })
 })
 
-router.get("/getCredit",authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getTransactionHistory", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
-    const result = await prisma.wallet.findMany({
-        where: {
-            userId: existingUser.id
-        },
-        select: {
-            creditPoint: true
-        }
-    })
-    res.send({result})
-})
-
-router.get("/getTransactionHistory", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
-        return res.status(411).json({
-            msg: "Incorrect input"
-        })
-    }
-    next()
-}, userMiddleware , async(req,res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.transaction.findMany({
-        orderBy:{
+        orderBy: {
             dateTime: 'desc'
         },
-        where:{
+        where: {
             OR: [
                 {
                     senderId: req.body.id
@@ -125,47 +118,74 @@ router.get("/getTransactionHistory", authMiddleware,  (req,res,next)=>{
             ]
         }
     })
-    res.send(result)
+    res.send({result})
 })
 
-router.get("/getCreditsHistory", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getCreditsHistory", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.creditLogs.findMany({
-        orderBy:{
+        orderBy: {
             dateTime: 'desc'
         },
-        where:{
+        where: {
             userId: req.body.id
         }
     })
     res.send(result)
 })
 
-router.get("/getBoughtCouponsHistory", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/getBoughtCouponsHistory", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware , async(req,res)=>{
-    const result = await prisma.coupon.findMany({
-        orderBy:{
-            sellingTime: 'desc'
+}, userMiddleware, async (req, res) => {
+    const result = await prisma.transaction.findMany({
+        orderBy: {
+            dateTime: 'desc'
         },
-        where:{
-            seller: req.body.id
+        where: {
+            senderId: req.body.id
+        },
+        select: {
+            amount: true,
+            dateTime: true,
+            coupon: {
+                include: true
+            }
         }
     })
-    res.send(result)
+    res.send({result})
+})
+
+router.get("/getSoldCouponsHistory", authMiddleware, (req, res, next) => {
+    const { success } = userIdSchema.safeParse(req.body)
+    if (!success) {
+        return res.status(411).json({
+            msg: "Incorrect input"
+        })
+    }
+    next()
+}, userMiddleware, async (req, res) => {
+    const result = await await prisma.transaction.findMany({
+        orderBy: {
+            dateTime: 'desc'
+        },
+        where: {
+            recieverId: req.body.id
+        }
+    })
+    res.send({result})
 })
 
 module.exports = {

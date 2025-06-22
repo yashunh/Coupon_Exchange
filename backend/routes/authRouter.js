@@ -2,11 +2,10 @@ const express = require("express")
 const jwt = require("jsonwebtoken")
 const { transporter } = require("../transporter.js")
 const { signinBody, otpBody, signupBody } = require("../zod/zod.js")
-const { PrismaClient } = require("@prisma/client")
 const { authMiddleware } = require("../middleware/authMiddleware")
+const prisma = require("../index.js")
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 router.post("/signup", async (req, res) => {
     const result = signupBody.safeParse(req.body)
