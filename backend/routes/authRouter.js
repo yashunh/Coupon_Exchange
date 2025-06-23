@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken")
 const { transporter } = require("../transporter.js")
 const { signinBody, otpBody, signupBody } = require("../zod/zod.js")
 const { authMiddleware } = require("../middleware/authMiddleware")
-const prisma = require("../index.js")
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
 
 const router = express.Router()
 
@@ -53,16 +54,18 @@ router.post("/signup", async (req, res) => {
     })
 })
 
-router.get("/signin", async (req, res) => {
-    const { success } = signinBody.safeParse(req.body)
-    if (!success) {
+router.post("/signin", async (req, res) => {
+    const result = signinBody.safeParse(req.body)
+    if(!result.success) {
         return res.status(411).json({
-            msg: "Incorrect input"
+            msg: "Incorrect input",
+            result
         })
     }
+    const { username, password} = req.body
     const existingUser = await prisma.user.findFirst({
         where: {
-            email: req.body.email
+            username: username
         }
     })
     if (!existingUser) {
@@ -75,7 +78,7 @@ router.get("/signin", async (req, res) => {
             msg: "User not verified"
         })
     }
-    if (existingUser.password !== req.body.password) {
+    if (existingUser.password !== password) {
         return res.status(411).json({
             message: "Incorrect Password"
         })
@@ -87,23 +90,24 @@ router.get("/signin", async (req, res) => {
     })
 })
 
-router.put("/otp", async (req, res) => {
-    const { success } = otpBody.safeParse(req.body)
-    if (!success) {
+// can be done with db tnx
+router.post("/otp", async (req, res) => {
+    const result = otpBody.safeParse(req.body)
+    if(!result.success){
         return res.status(411).json({
-            msg: "Incorrect input"
+            msg: "Incorrect input",
+            result
         })
     }
-
+    const { username, password, otp} = req.body
     const existingUser = await prisma.user.findFirst({
         where: {
-            number: req.body.number
+            username
         },
         include: {
             otp: true
         }
     })
-    console.log(existingUser)
     if (!existingUser) {
         return res.status(404).json({
             msg: "User does not exsit"
@@ -114,22 +118,32 @@ router.put("/otp", async (req, res) => {
             msg: "User already verified"
         })
     }
-    const getOtp = await prisma.otp.findFirst({
-        where: {
-            userId: existingUser.id
-        }
-    })
-    if (getOtp.otp !== req.body.otp) {
+    if (existingUser.password !== password) {
+        return res.status(411).json({
+            message: "Incorrect Password"
+        })
+    }
+    if (existingUser.otp.otp !== otp) {
         return res.status(411).json({
             msg: "Incorrect otp"
         })
     }
     await prisma.user.update({
         where: {
-            id: existingUser.id
+            username
         },
         data: {
             authenticated: true
+        }
+    })
+    await prisma.wallet.create({
+        data: {
+            userId: existingUser.id
+        }
+    })
+    await prisma.cart.create({
+        data: {
+            userId: existingUser.id,
         }
     })
     const token = jwt.sign({ id: existingUser.id }, process.env.JWT_SECRET)
@@ -140,8 +154,8 @@ router.put("/otp", async (req, res) => {
 
 // not done
 router.get("/forgotPassword", authMiddleware, async (req, res) => {
-    const { success } = signinBody.safeParse(req.body)
-    if (!success) {
+    const result = signinBody.safeParse(req.body)
+    if(!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })

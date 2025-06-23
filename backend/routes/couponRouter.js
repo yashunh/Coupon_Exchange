@@ -1,8 +1,9 @@
 const express = require("express")
 const { authMiddleware } = require("../middleware/authMiddleware")
-const { addToCartBody, buyCouponBody, createCouponBody, filterCouponBody, userIdSchema } = require("../zod/zod")
+const { addToCartBodys, createCouponBody, filterCouponBody, userIdSchema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
-const prisma = require("../index.js")
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
 
 const router = express.Router()
 
@@ -163,89 +164,6 @@ router.get("/filter", authMiddleware,  (req,res,next)=>{
         }
     })
     res.send(result)
-})
-
-//need change
-router.post("/buy", authMiddleware, (req,res,next)=>{
-     const { success } = buyCouponBody.safeParse(req.body)
-    if(!success){
-        return res.status(411).json({
-            msg: "Incorrect input"
-        })
-    }
-    next()
-}, async (req, res)=>{
-    const today = new Date()
-    today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
-    const coupon = await prisma.coupon.findFirst({
-        where: {
-            id: req.body.couponId
-        }
-    })
-    if(!coupon){
-        return res.status(404).json({
-            msg: "invalid coupon id"
-        })
-    }
-    if(coupon.sold){
-        return res.status(404).json({
-            msg: "coupon is already sold"
-        })
-    }
-    if(!coupon.verified){
-        return res.status(404).json({
-            msg: "coupon not verified"
-        })
-    }
-    const userWallet = await prisma.wallet.findFirst({
-        where: {
-            userId: req.body.id
-        }
-    })
-    if(!userWallet){
-        return res.status(404).json({
-            msg: "invalid user id"
-        })
-    }
-    if(userWallet.balance <= coupon.sellerPrice){
-        return res.status(404).json({
-            msg: "insufficient balance"
-        })
-    }
-    await prisma.coupon.update({
-        where: {
-            id: req.body.couponId
-        },
-        data: {
-            buyerId: req.body.id,
-            sellingTime: today,
-            sold: true
-        }
-    })
-    await prisma.wallet.update({
-        where: {
-            id: userWallet.id
-        },
-        data: {
-            balance: {
-                decrement: coupon.sellerPrice
-            }
-        }
-    })
-    await prisma.wallet.updateMany({
-        where: {
-            userId: coupon.ownerId
-        },
-        data: {
-            balance: {
-                increment: coupon.listingPrice
-            }
-        }
-    })
-    return res.json({
-        msg: "coupon bought successfully",
-        couponId: coupon.id
-    })
 })
 
 module.exports = {

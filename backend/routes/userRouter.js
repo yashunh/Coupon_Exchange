@@ -2,8 +2,8 @@ const express = require("express")
 const { authMiddleware } = require("../middleware/authMiddleware")
 const { userIdSchema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
-const prisma = require("../index.js")
-
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
 const router = express.Router()
 
 router.get("/getProfile", authMiddleware, (req, res, next) => {

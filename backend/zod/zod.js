@@ -26,8 +26,9 @@ const signupBody = zod.object({
 })
 
 const otpBody = zod.object({
-    id: userIdSchema,
-    otp: zod.string().min(6).max(6).regex(/[0-9]/)
+    username: usernameSchema,
+    password: passwordSchema,
+    otp: zod.number()
 })
 
 const createCouponBody = zod.object({
@@ -57,6 +58,13 @@ const buyCouponBody = zod.object({
     couponId: couponIdSchmema
 })
 
+const withdrawBody = zod.object({
+    id: userIdSchema,
+    amount: zod.number().min(0),
+    publicKey: zod.string(),
+    couponId: couponIdSchmema
+})
+
 module.exports = {
     signinBody,
     signupBody,
@@ -65,5 +73,6 @@ module.exports = {
     buyCouponBody,
     createCouponBody,
     filterCouponBody,
-    userIdSchema
+    userIdSchema,
+    withdrawBody
 }

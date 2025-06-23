@@ -35,6 +35,7 @@ model Coupon{
   validity DateTime
   code String
   verified Boolean @default(true)
+  sold Boolean @default(false)
   owner User @relation(fields: [ownerId], references: [id],name: "sellerToCoupon")
   cartItems CartItem[]
   transaction Transaction[]
