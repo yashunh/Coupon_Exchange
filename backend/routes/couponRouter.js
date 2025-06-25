@@ -1,22 +1,22 @@
 const express = require("express")
 const { authMiddleware } = require("../middleware/authMiddleware")
-const { addToCartBodys, createCouponBody, filterCouponBody, userIdSchema } = require("../zod/zod")
+const { createCouponBody, filterCouponBody, userIdSchema, couponIdSchmema } = require("../zod/zod")
 const { userMiddleware } = require("../middleware/userMiddleware")
 const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
 const router = express.Router()
 
-router.post("/create", authMiddleware, (req,res,next)=>{
-     const { success } = createCouponBody.safeParse(req.body)
-    if(!success){
+router.post("/create", authMiddleware, (req, res, next) => {
+    const result = createCouponBody.safeParse(req.body)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
-    const { id, sellerPrice, description, platform, validityTime, validityDate, code} = req.body
+}, userMiddleware, async (req, res) => {
+    const { sellingPrice, description, platform, validityTime, validityDate, code } = req.body
     const today = new Date()
     today.setUTCHours(today.getUTCHours() - 5, today.getUTCMinutes() - 30)
     const [hours, minutes] = validityTime.split(':')
@@ -27,12 +27,12 @@ router.post("/create", authMiddleware, (req,res,next)=>{
         parseInt(day, 10),
         parseInt(hours, 10),
         parseInt(minutes, 10)
-      );
+    );
     const result = await prisma.coupon.create({
         data: {
-            ownerId: id,
-            listingPrice: sellerPrice*1.01,
-            sellingPrice: sellerPrice,
+            ownerId: req.params.id,
+            listingPrice: sellingPrice * 1.01,
+            sellingPrice: sellingPrice,
             validity: dateTime,
             platform: platform,
             description: description,
@@ -42,15 +42,15 @@ router.post("/create", authMiddleware, (req,res,next)=>{
     res.send(result)
 })
 
-router.get("/latest", authMiddleware,  (req,res,next)=>{
-    const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/latest", authMiddleware, (req, res, next) => {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.coupon.findMany({
         orderBy: {
             listingTime: "desc"
@@ -64,98 +64,85 @@ router.get("/latest", authMiddleware,  (req,res,next)=>{
     res.send(result)
 })
 
-router.get("/myListing", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/myListing", authMiddleware, (req, res, next) => {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.coupon.findMany({
         where: {
-            ownerId: req.body.id
+            ownerId: req.params.id
         }
     })
     res.send(result)
 })
 
-router.post("/addToCart",  authMiddleware,  (req,res,next)=>{
-     const { success } = addToCartBody.safeParse(req.body)
-    if(!success){
+router.post("/addToCart", authMiddleware, (req, res, next) => {
+    const result = couponIdSchmema.safeParse(req.body)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
+}, userMiddleware, async (req, res) => {
     const cart = await prisma.cart.findFirst({
         where: {
-            userId: req.body.id
-       
+            userId: req.params.id
         }
     })
-    let result;
-    if(!cart){
-        result = await prisma.cart.create({
-            data: {
-                userId: req.body.id,
-                items: [couponId]
-            }
-        })
-    }
-    else{
-       result = await prisma.cart.update({
-            where: {
-                id: cart.id
-            },
-            data:{
-                ...cart,
-                items: [...cart.items, couponId]
-            }
-       })
-    }
-    res.send(result)
+    let result = await prisma.cart.update({
+        where: {
+            id: cart.id
+        },
+        data: {
+            items: [...cart.items, couponId]
+        }
+    })
+    return res.send(result)
 })
 
-router.get("/:id", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+router.get("/:id", authMiddleware, (req, res, next) => {
+    const result = couponIdSchmema.safeParse(req.body.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.coupon.findUnique({
-        where:{
-            id: req.params.id
+        where: {
+            id: req.body.id
         }
     })
     res.send(result)
 })
 
-//verify
-router.get("/filter", authMiddleware,  (req,res,next)=>{
-     const { success } = userIdSchema.safeParse(req.body)
-    if(!success){
+//verify / not done
+router.get("/filter", authMiddleware, (req, res, next) => {
+    const result = userIdSchema.safeParse(req.body)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
-}, userMiddleware, async (req, res)=>{
+}, userMiddleware, async (req, res) => {
     const result = await prisma.coupon.findMany({
         take: 50,
-        where:{
+        where: {
             sold: false,
             verified: true,
             platform: req.body.platform || "",
             description: {
                 contains: req.body.filter
             },
-            sellerPrice :{
+            sellerPrice: {
                 lessThanOrEqualTo: req.body.priceRange
             }
         },

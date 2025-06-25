@@ -32,18 +32,12 @@ const otpBody = zod.object({
 })
 
 const createCouponBody = zod.object({
-    id: userIdSchema,
-    sellerPrice: zod.number(),
+    sellingPrice: zod.number(),
     description: zod.string(),
     platform: zod.string(),
     validityTime: timeSchema,
     validityDate: dateSchema,
     code: zod.string()
-})
-
-const addToCartBody = zod.object({
-    id: userIdSchema,
-    couponId: couponIdSchmema
 })
 
 const filterCouponBody = zod.object({
@@ -69,7 +63,7 @@ module.exports = {
     signinBody,
     signupBody,
     otpBody,
-    addToCartBody,
+    couponIdSchmema,
     buyCouponBody,
     createCouponBody,
     filterCouponBody,

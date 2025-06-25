@@ -7,17 +7,19 @@ const prisma = new PrismaClient()
 const router = express.Router()
 
 router.get("/getProfile", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    console.log(req.params)
+    if (!result.success) {
         return res.status(411).json({
-            msg: "Incorrect input"
+            msg: "Incorrect input",
+            result
         })
     }
     next()
 }, async (req, res) => {
     const existingUser = await prisma.user.findUnique({
         where: {
-            id: req.body.id
+            id: req.params.id
         },
         omit: {
             password: true
@@ -33,13 +35,13 @@ router.get("/getProfile", authMiddleware, (req, res, next) => {
             msg: "User not verified"
         })
     }
-    res.send({ existingUser })
+    res.send(existingUser)
 })
 
 // can add iterator
 router.get("/getNotification", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
@@ -51,52 +53,56 @@ router.get("/getNotification", authMiddleware, (req, res, next) => {
             dateTime: "desc"
         },
         where: {
-            userId: existingUser.id
+            userId: req.params.id
         }
     })
-    res.send({ result })
+    res.send(result)
 })
 
 router.get("/getCart", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
 }, userMiddleware, async (req, res) => {
-    const result = await prisma.cart.findMany({
-        orderBy: {
-            dateTime: "desc"
-        },
+    const result = await prisma.cart.findFirst({
         where: {
-            userId: req.body.id
+            userId: req.params.id
+        },
+        include: {
+            items: {
+                orderBy: {
+                    addedAT: "desc"
+                }
+            }
         }
     })
-    res.send({ result })
+    res.send(result)
 })
 
 router.get("/getBalance", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
     }
     next()
 }, userMiddleware, async (req, res) => {
-    const result = await prisma.wallet.findMany({
+    const result = await prisma.wallet.findFirst({
         where: {
-            userId: req.body.id
+            userId: req.params.id
         }
     })
-    res.send({ result })
+    res.send(result)
 })
 
 router.get("/getTransactionHistory", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
@@ -110,20 +116,20 @@ router.get("/getTransactionHistory", authMiddleware, (req, res, next) => {
         where: {
             OR: [
                 {
-                    senderId: req.body.id
+                    senderId: req.params.id
                 },
                 {
-                    recieverId: req.body.id
+                    recieverId: req.params.id
                 }
             ]
         }
     })
-    res.send({result})
+    res.send(result)
 })
 
 router.get("/getCreditsHistory", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
@@ -135,15 +141,15 @@ router.get("/getCreditsHistory", authMiddleware, (req, res, next) => {
             dateTime: 'desc'
         },
         where: {
-            userId: req.body.id
+            userId: req.params.id
         }
     })
     res.send(result)
 })
 
 router.get("/getBoughtCouponsHistory", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
@@ -155,7 +161,7 @@ router.get("/getBoughtCouponsHistory", authMiddleware, (req, res, next) => {
             dateTime: 'desc'
         },
         where: {
-            senderId: req.body.id
+            senderId: req.params.id
         },
         select: {
             amount: true,
@@ -165,12 +171,12 @@ router.get("/getBoughtCouponsHistory", authMiddleware, (req, res, next) => {
             }
         }
     })
-    res.send({result})
+    res.send(result)
 })
 
 router.get("/getSoldCouponsHistory", authMiddleware, (req, res, next) => {
-    const { success } = userIdSchema.safeParse(req.body)
-    if (!success) {
+    const result = userIdSchema.safeParse(req.params.id)
+    if (!result.success) {
         return res.status(411).json({
             msg: "Incorrect input"
         })
@@ -182,10 +188,10 @@ router.get("/getSoldCouponsHistory", authMiddleware, (req, res, next) => {
             dateTime: 'desc'
         },
         where: {
-            recieverId: req.body.id
+            recieverId: req.params.id
         }
     })
-    res.send({result})
+    res.send(result)
 })
 
 module.exports = {

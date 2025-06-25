@@ -94,6 +94,7 @@ model CartItem {
   id Int @id @default(autoincrement())
   cartId Int
   couponId Int
+  addedAT DateTime @default(now())
   cart Cart @relation(fields: [cartId], references: [id])
   coupon Coupon @relation(fields: [couponId], references: [id])
 }

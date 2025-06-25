@@ -85,7 +85,7 @@ router.post("/signin", async (req, res) => {
     }
     const token = jwt.sign({ id: existingUser.id }, process.env.JWT_SECRET)
     return res.send({
-        msg: "user created",
+        msg: "user sign in",
         token
     })
 })
@@ -148,6 +148,7 @@ router.post("/otp", async (req, res) => {
     })
     const token = jwt.sign({ id: existingUser.id }, process.env.JWT_SECRET)
     return res.send({
+        msg: "otp verified",
         token
     })
 })

@@ -11,7 +11,7 @@ const connection = new Connection("https://api.devnet.solana.com")
 
 //need change
 router.post("/buy", authMiddleware, (req,res,next)=>{
-     const { success } = buyCouponBody.safeParse(req.body)
+    const { success } = buyCouponBody.safeParse(req.body)
     if(!success){
         return res.status(411).json({
             msg: "Incorrect input"

@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 const userMiddleware = async(req, res, next)=>{
     const existingUser = await prisma.user.findUnique({
         where:{
-            id: req.body.id
+            id: req.params.id
         }
     })
     if(!existingUser){

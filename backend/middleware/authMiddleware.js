@@ -2,17 +2,18 @@ const jwt = require("jsonwebtoken")
 
 const authMiddleware = (req, res, next)=>{
     const headers = req.headers.authorization
-    if(!headers || headers.startsWith('Bearer')){
+    if(!headers || !headers.startsWith('Bearer')){
         return res.status(403).json({
             msg: "Invalid headers"
         })
     }
     const token = headers.split(' ')[1]
     try{
-        const id = jwt.verify(token, process.env.JWT_SECRET)
-        req.body.id = id
+        const result = jwt.verify(token, process.env.JWT_SECRET)
+        req.params.id = result.id
         next()
     }catch(err){
+        console.log(err)
         return res.status(403).json({
             error: err
         })
